@@ -33,6 +33,7 @@ async function run() {
     const db = client.db("Workday");
     const assetsCollection = db.collection("assets");
     const usersCollection = db.collection("users");
+    const teamsCollection = db.collection("teams");
 
     //post user--------------
     app.post("/users", async (req, res) => {
@@ -56,6 +57,41 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
+    //get all user------------
+    app.get("/users", async(req, res) => {
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+
+    // get user all data----------------
+    app.get("/user/:email",  async (req, res) => {
+      const email = req.params.email
+      const result = await usersCollection.findOne({email})
+      res.send(result);
+    });
+
+    // add to list-------
+    app.post("/team", async (req, res) => {
+      const teamData = req.body;
+      const result = await teamsCollection.insertOne(teamData);
+      res.send(result);
+    });
+
+    app.get("/team/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      const result = await teamsCollection.find({ userEmail }).toArray();
+      res.send(result);
+    });
+
+    //removed from list----------
+    app.delete("/team/:id", async (req, res) => {
+      const id  = req.params.id;
+      const query = { _id: new ObjectId(id)};
+      const result = await teamsCollection.deleteOne(query);
+      res.send(result);
+    });
+
 
     // post asset data----------
     app.post("/asset", async (req, res) => {
@@ -104,7 +140,7 @@ async function run() {
     // delete assets in client side use in assets list---------
     app.delete("/asset/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+      const query = { _id: new ObjectId(id)};
       const result = await assetsCollection.deleteOne(query);
       res.send(result);
     });
