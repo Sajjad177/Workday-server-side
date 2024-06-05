@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-
+ 
 async function run() {
   try {
     const db = client.db("Workday");
@@ -38,18 +38,18 @@ async function run() {
     //post user--------------
     app.post("/users", async (req, res) => {
       const user = req.body;
-      
+
       if (!user.email) {
         return res.status(400).send({ message: "Email is required" });
       }
-    
+
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
-    
+
       if (existingUser) {
         return res.status(409).send({ message: "User already exists" });
       }
-    
+
       try {
         const result = await usersCollection.insertOne(user);
         res.status(201).send(result);
@@ -59,25 +59,40 @@ async function run() {
     });
 
     //get all user------------
-    app.get("/users", async(req, res) => {
-      const result = await usersCollection.find().toArray()
-      res.send(result)
-    })
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
     // get user all data----------------
-    app.get("/user/:email",  async (req, res) => {
-      const email = req.params.email
-      const result = await usersCollection.findOne({email})
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
       res.send(result);
     });
 
     // add to list-------
     app.post("/team", async (req, res) => {
       const teamData = req.body;
+      const user = await teamsCollection.findOne({ email: teamData.email });
+
+      if (teamData.role !== "employee") {
+        return res
+          .status(400)
+          .send({ message: "Only employees can be added to the team." });
+      }
       const result = await teamsCollection.insertOne(teamData);
       res.send(result);
     });
 
+    // get team add admin in employee list---------
+    app.get("/team/:email", async (req, res) => {
+      const email = req.params.email;
+      const teamMembers = await teamsCollection.find({ userEmail: email }).toArray();
+      res.send(teamMembers);
+    });
+
+    // get spacific user add employee in admin
     app.get("/team/:email", async (req, res) => {
       const userEmail = req.params.email;
       const result = await teamsCollection.find({ userEmail }).toArray();
@@ -86,12 +101,11 @@ async function run() {
 
     //removed from list----------
     app.delete("/team/:id", async (req, res) => {
-      const id  = req.params.id;
-      const query = { _id: new ObjectId(id)};
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
       const result = await teamsCollection.deleteOne(query);
       res.send(result);
     });
-
 
     // post asset data----------
     app.post("/asset", async (req, res) => {
@@ -140,7 +154,7 @@ async function run() {
     // delete assets in client side use in assets list---------
     app.delete("/asset/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await assetsCollection.deleteOne(query);
       res.send(result);
     });
@@ -156,6 +170,48 @@ async function run() {
       const result = await assetsCollection.updateOne(query, updateDoc);
       res.send(result);
     });
+
+
+    //TODO-1: some problems 
+    //! request assets for employee--------------------
+    app.post("/request-asset/:id", async (req, res) => {
+      // const {assetId}  = req.body;
+      const requestData = req.data
+      const id = req.params.id;
+      console.log(id)
+      try {
+        // Find the asset by ID and update its quantity
+        const asset = await assetsCollection.findOne(
+          { _id: new ObjectId(id) },
+          { $inc: { quantity: -1 } },
+          // { returnOriginal: false }
+        );
+    console.log(asset)
+        if (!asset.value) {
+          return res.status(404).send({ message: "Asset not found" });
+        }
+    
+        // Check if the updated quantity is less than 0
+        if (asset.value.quantity < 0) {
+          // Set quantity to 0 if it goes negative
+          await assetsCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { quantity: 0 } }
+          );
+          return res.status(200).send({ ...asset.value, quantity: 0 });
+        }
+    
+        res.send(asset.value);
+      } catch (error) {
+        console.error("Error updating asset quantity:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+    
+    
+
+
+
 
     // await client.db("admin").command({ ping: 1 });
     console.log(
