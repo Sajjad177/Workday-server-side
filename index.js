@@ -206,12 +206,16 @@ async function run() {
       const id = req.params.id;
       const asset = req.body;
       const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
+      const options = { upsert: false };
       const updateAsset = {
         $set: {
           ...asset,
-          quantity: parseInt(asset.quantity) - 1, // Decrement the quantity by 1
+          
         },
+        $inc:{
+          quantity: -1
+        }
+        
       };
       const result = await assetsCollection.updateOne(
         filter,
