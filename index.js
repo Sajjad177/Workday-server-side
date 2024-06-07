@@ -34,12 +34,11 @@ async function run() {
     const assetsCollection = db.collection("assets");
     const usersCollection = db.collection("users");
     const teamsCollection = db.collection("teams");
-    const requestsCollection = db.collection("requests");
+    // const requestsCollection = db.collection("requests");
 
     //post user--------------
     app.post("/users", async (req, res) => {
       const user = req.body;
-
       if (!user.email) {
         return res.status(400).send({ message: "Email is required" });
       }
@@ -73,8 +72,6 @@ async function run() {
       res.send(result);
     });
 
-
-
     //1 get user added data----------------
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -82,10 +79,10 @@ async function run() {
       res.send(result);
     });
 
-    // add to list-------
+    // post in team collection-----------------------------
     app.post("/team", async (req, res) => {
       const teamData = req.body;
-      const user = await teamsCollection.findOne({ email: teamData.email });
+      // const user = await teamsCollection.find({ email: teamData.email }).toArray();
 
       if (teamData.role !== "employee") {
         return res
@@ -96,9 +93,18 @@ async function run() {
       res.send(result);
     });
 
-    // get all teams
-    app.get("/teams", async (req, res) => {
-      const result = await teamsCollection.find().toArray();
+    // get teams workAt email------------------
+    app.get("/hrEmail/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await teamsCollection.findOne({ email: email });
+      res.send(result);
+    });
+
+    // get workAt values all teams-----------------
+    app.get("/myTeam/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email)
+      const result = await teamsCollection.find({ workAt: email }).toArray();
       res.send(result);
     });
 
@@ -106,33 +112,15 @@ async function run() {
     app.get("/team/:email", async (req, res) => {
       const email = req.params.email;
       const teamMembers = await teamsCollection
-        .find({ userEmail: email })
+        .find({ workAt: email })
         .toArray();
       res.send(teamMembers);
     });
 
-    
-
-    // get spacific user add employee in admin
-    // app.get("/team/:email", async (req, res) => {
-    //   const userEmail = req.params.email;
-    //   const result = await teamsCollection.find({ userEmail }).toArray();
-    //   res.send(result);
-    // });
-    //! Problem in there--------------------------------
-    app.get("/teams", async (req, res) => {
-      const workAt = req.query.workAt; // Extract the workAt email from query parameters
-      console.log(workAt, "workAt from query parameter");
-
-      try {
-        const filter = { workAt: workAt };
-        const result = await teamsCollection.findOne(filter).toArray();
-        console.log("team members found", result);
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching team members:", error);
-        res.status(500).send("Error fetching team members");
-      }
+    app.get("/team/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await teamsCollection.findOne({ workAt: email });
+      res.send(result);
     });
 
     //removed from list----------
@@ -179,12 +167,11 @@ async function run() {
       res.send(assets);
     });
 
-    // get all assets 
+    // get all assets
     app.get("/assets", async (req, res) => {
       const assets = await assetsCollection.find(req.query).toArray();
       res.send(assets);
     });
-
 
     // get asset single data
     app.get("/asset/:id", async (req, res) => {
@@ -214,9 +201,7 @@ async function run() {
       res.send(result);
     });
 
-    //TODO-1: some problems quantity -1 not ok
-    //! request assets for employee--------------------
-
+    // request for assets section-----------------
     app.put("/request-asset/:id", async (req, res) => {
       const id = req.params.id;
       const asset = req.body;
@@ -225,8 +210,8 @@ async function run() {
       const updateAsset = {
         $set: {
           ...asset,
+          quantity: parseInt(asset.quantity) - 1, // Decrement the quantity by 1
         },
-        
       };
       const result = await assetsCollection.updateOne(
         filter,
@@ -235,12 +220,6 @@ async function run() {
       );
       res.send(result);
     });
-
-
-    
-
- 
-
 
     // await client.db("admin").command({ ping: 1 });
     console.log(
