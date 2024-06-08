@@ -79,6 +79,30 @@ async function run() {
       res.send(result);
     });
 
+
+    //user image updated----------------------------
+    app.put("/update-profile/:id", async (req, res) => {
+      const id = req.params.id;
+      const user = req.body;
+      console.log(user, id);
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateUser = {
+        $set: {
+          ...user,
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateUser,
+        options
+      );
+      res.send(result);
+    });
+
+
+
+
     // post in team collection-----------------------------
     app.post("/team", async (req, res) => {
       const teamData = req.body;
