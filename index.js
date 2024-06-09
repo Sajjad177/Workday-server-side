@@ -1,8 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const {
+  MongoClient,
+  ServerApiVersion,
+  ObjectId,
+  Timestamp,
+} = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -34,7 +40,21 @@ async function run() {
     const assetsCollection = db.collection("assets");
     const usersCollection = db.collection("users");
     const teamsCollection = db.collection("teams");
-    // const requestsCollection = db.collection("requests");
+
+    // payment method-------------
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log("amount", amount);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
 
     //post user--------------
     app.post("/users", async (req, res) => {
@@ -79,7 +99,6 @@ async function run() {
       res.send(result);
     });
 
-
     //user image updated----------------------------
     app.put("/update-profile/:id", async (req, res) => {
       const id = req.params.id;
@@ -100,8 +119,7 @@ async function run() {
       res.send(result);
     });
 
-
-
+    // user package category updated------------------
 
     // post in team collection-----------------------------
     app.post("/team", async (req, res) => {
@@ -117,6 +135,12 @@ async function run() {
       res.send(result);
     });
 
+    //get all team--------------------
+    app.get("/teams", async (req, res) => {
+      const result = await teamsCollection.find(req.query).toArray();
+      res.send(result);
+    });
+
     // get teams workAt email------------------
     app.get("/hrEmail/:email", async (req, res) => {
       const email = req.params.email;
@@ -127,7 +151,7 @@ async function run() {
     // get workAt values all teams-----------------
     app.get("/myTeam/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
+      console.log(email);
       const result = await teamsCollection.find({ workAt: email }).toArray();
       res.send(result);
     });
@@ -234,18 +258,32 @@ async function run() {
       const updateAsset = {
         $set: {
           ...asset,
-          
         },
-        $inc:{
-          quantity: -1
-        }
-        
+        $inc: {
+          quantity: -1,
+        },
       };
       const result = await assetsCollection.updateOne(
         filter,
         updateAsset,
         options
       );
+      res.send(result);
+    });
+
+    // update approved in assets function:
+    app.put("/request-update/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const assets = req.body;
+      console.log(assets)
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: { ...assets },
+      };
+      const result = await assetsCollection.updateOne(query, updateDoc, options);
+      console.log(result);
       res.send(result);
     });
 
