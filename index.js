@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken")
 const cookieParser = require("cookie-parser");
 const {
   MongoClient,
@@ -54,6 +55,7 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+      console.log(paymentIntent)
     });
 
     //post user--------------
