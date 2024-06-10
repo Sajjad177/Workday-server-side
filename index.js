@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const {
   MongoClient,
@@ -42,11 +42,37 @@ async function run() {
     const usersCollection = db.collection("users");
     const teamsCollection = db.collection("teams");
 
+    //jwt related api----------------------
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      res.send({ token });
+    });
+
+    const verifyToken = (req, res, next) => {
+      // console.log("Inside token-------->", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "forbidden access" });
+      }
+
+      const token = req.headers.authorization.split(" ")[1];
+
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+        if (error) {
+          return res.this.status(401).send({ message: "forbidden access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
     // payment method-------------
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
-      console.log("amount", amount);
+      // console.log("amount", amount);
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         currency: "usd",
@@ -55,7 +81,7 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
-      console.log(paymentIntent)
+      // console.log(paymentIntent);
     });
 
     //post user--------------
@@ -80,8 +106,21 @@ async function run() {
       }
     });
 
+    app.get("/checkTeam/:email", async (req, res) => {
+      const email = req.params.email;
+      // console.log(email);
+      const result = await usersCollection.findOne({ email });
+      if (result?.workAt === null || result?.workAt === undefined) {
+        res.send({ isWork: false });
+      } else {
+        res.send({ isWork: true });
+      }
+
+      // console.log(result);
+    });
+
     //get all user------------
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -105,7 +144,7 @@ async function run() {
     app.put("/update-profile/:id", async (req, res) => {
       const id = req.params.id;
       const user = req.body;
-      console.log(user, id);
+      // console.log(user, id);
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateUser = {
@@ -121,10 +160,23 @@ async function run() {
       res.send(result);
     });
 
-    // user package category updated------------------
+    //!patch for update workAt------------
+    app.patch("/user/update/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      // console.log(id)
+      const user = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: { ...user },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result);
+      // console.log(result)
+    });
 
     // post in team collection-----------------------------
-    app.post("/team", async (req, res) => {
+    app.post("/team", verifyToken, async (req, res) => {
       const teamData = req.body;
       // const user = await teamsCollection.find({ email: teamData.email }).toArray();
 
@@ -149,11 +201,18 @@ async function run() {
       const result = await teamsCollection.findOne({ email: email });
       res.send(result);
     });
+    // app.get("/onTeam/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   console.log(email)
+    //   const result = await teamsCollection.findOne({ workAt: email });
+    //   res.send(result);
+    //   console.log("team data is****************", result)
+    // });
 
     // get workAt values all teams-----------------
     app.get("/myTeam/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email);
+      // console.log(email);
       const result = await teamsCollection.find({ workAt: email }).toArray();
       res.send(result);
     });
@@ -167,7 +226,7 @@ async function run() {
       res.send(teamMembers);
     });
 
-    app.get("/team/:email", async (req, res) => {
+    app.get("/team/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const result = await teamsCollection.findOne({ workAt: email });
       res.send(result);
@@ -242,13 +301,17 @@ async function run() {
     // update assets
     app.put("/asset/:id", async (req, res) => {
       const id = req.params.id;
-      const assetData = req.data;
+      console.log(id)
+      const assetData = req.body;
+      // console.log(assetData)
       const query = { _id: new ObjectId(id) };
+      const options = {upsert : true}
       const updateDoc = {
         $set: { ...assetData },
       };
-      const result = await assetsCollection.updateOne(query, updateDoc);
+      const result = await assetsCollection.updateOne(query, updateDoc, options);
       res.send(result);
+      console.log(result)
     });
 
     // request for assets section-----------------
@@ -276,16 +339,20 @@ async function run() {
     // update approved in assets function:
     app.put("/request-update/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const assets = req.body;
-      console.log(assets)
+      // console.log(assets);
       const query = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
         $set: { ...assets },
       };
-      const result = await assetsCollection.updateOne(query, updateDoc, options);
-      console.log(result);
+      const result = await assetsCollection.updateOne(
+        query,
+        updateDoc,
+        options
+      );
+      // console.log(result);
       res.send(result);
     });
 
