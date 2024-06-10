@@ -81,7 +81,6 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
-      // console.log(paymentIntent);
     });
 
     //post user--------------
@@ -205,7 +204,6 @@ async function run() {
     // get workAt values all teams-----------------
     app.get("/myTeam/:email", async (req, res) => {
       const email = req.params.email;
-      // console.log(email);
       const result = await teamsCollection.find({ workAt: email }).toArray();
       res.send(result);
     });
@@ -343,7 +341,6 @@ async function run() {
         updateDoc,
         options
       );
-      // console.log(result);
       res.send(result);
     });
 
