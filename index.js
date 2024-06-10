@@ -116,7 +116,6 @@ async function run() {
         res.send({ isWork: true });
       }
 
-      // console.log(result);
     });
 
     //get all user------------
@@ -201,13 +200,7 @@ async function run() {
       const result = await teamsCollection.findOne({ email: email });
       res.send(result);
     });
-    // app.get("/onTeam/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   console.log(email)
-    //   const result = await teamsCollection.findOne({ workAt: email });
-    //   res.send(result);
-    //   console.log("team data is****************", result)
-    // });
+    
 
     // get workAt values all teams-----------------
     app.get("/myTeam/:email", async (req, res) => {
@@ -251,7 +244,6 @@ async function run() {
     app.get("/assets", async (req, res) => {
       const { search, stockStatus, assetType, sortOrder } = req.query;
       const query = {};
-      // Search
       if (search) {
         query.assetName = { $regex: search, $options: "i" };
       }
@@ -303,7 +295,6 @@ async function run() {
       const id = req.params.id;
       console.log(id)
       const assetData = req.body;
-      // console.log(assetData)
       const query = { _id: new ObjectId(id) };
       const options = {upsert : true}
       const updateDoc = {
