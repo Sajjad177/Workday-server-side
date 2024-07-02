@@ -44,3 +44,6 @@
      JWT_SECRET=your_jwt_secret_key_here
      ```
      Replace `your_jwt_secret_key_here` with your actual keys.
+4. **Access the server :**
+   - run code is `nodemon index.js ` or `npm run dev` and also check which file are you now. 
+   - Open your web browser and navigate to `http://localhost:3000` to view the application locally.
