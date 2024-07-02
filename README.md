@@ -32,7 +32,7 @@
      git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY
      ```
 2. **Open files in VS Code:**
-   - After opening the **client-side** and **server-side** files in VS Code, install npm dependencies both file:
+   - After opening the **server-side** files in VS Code, install npm dependencies both file:
      ```bash
      npm install
      ```
